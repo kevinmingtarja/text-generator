@@ -1,11 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hypermodeinc/modus/sdk/go/pkg/models"
 	"github.com/hypermodeinc/modus/sdk/go/pkg/models/openai"
 )
+
+type iPythonMessage struct {
+	openai.MessageBase
+}
+
+func newIPythonMessage(content string) *iPythonMessage {
+	return &iPythonMessage{
+		MessageBase: openai.MessageBase{
+			Role:    "ipython",
+			Content: content,
+		},
+	}
+}
 
 func GenerateText(modelName, prompt string) (string, error) {
 	model, err := models.GetModel[openai.ChatModel](modelName)
@@ -14,14 +28,16 @@ func GenerateText(modelName, prompt string) (string, error) {
 	}
 	model.Debug = true
 
-	input, err := model.CreateInput(
+	messages := []openai.Message{
 		openai.NewSystemMessage(`When you receive a tool call response, use the output to format an answer to the orginal user question.
 
 You are a helpful assistant with tool calling capabilities.
 		`),
 		openai.NewUserMessage(prompt),
-		// openai.NewAssistantMessage(`{"name": "get_current_conditions", "parameters": {"location": "San Francisco, CA", "unit": "Fahrenheit"}}`),
-		// openai.NewUserMessage(`{"output": "Clouds giving way to sun Hi: 76° Tonight: Mainly clear early, then areas of low clouds forming Lo: 56°"}`),
+	}
+
+	input, err := model.CreateInput(
+		messages...,
 	)
 	if err != nil {
 		return "", err
@@ -60,5 +76,25 @@ You are a helpful assistant with tool calling capabilities.
 		return "", err
 	}
 
-	return strings.TrimSpace(output.Choices[0].Message.Content), nil
+	// TODO: parse this better
+	toolCall := strings.TrimSpace(output.Choices[0].Message.Content)
+	fmt.Println(toolCall)
+
+	messages = append(messages, openai.NewAssistantMessage(toolCall))
+	// Mock response, imagine this output to be the result of an API call
+	messages = append(messages, openai.NewUserMessage(`{"output": "The weather in that city is currently 76°F with a low of 56°F tonight."}`))
+
+	input, err = model.CreateInput(
+		messages...,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	output, err = model.Invoke(input)
+	if err != nil {
+		return "", err
+	}
+
+	return output.Choices[0].Message.Content, nil
 }
