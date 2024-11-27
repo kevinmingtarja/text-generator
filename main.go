@@ -8,7 +8,9 @@ import (
 	"github.com/hypermodeinc/modus/sdk/go/pkg/models/openai"
 )
 
-func GenerateText(modelName, prompt string) (string, error) {
+const modelName = "text-generator"
+
+func GenerateText(prompt string) (string, error) {
 	model, err := models.GetModel[openai.ChatModel](modelName)
 	if err != nil {
 		return "", err
