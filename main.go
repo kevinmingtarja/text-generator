@@ -8,19 +8,6 @@ import (
 	"github.com/hypermodeinc/modus/sdk/go/pkg/models/openai"
 )
 
-type iPythonMessage struct {
-	openai.MessageBase
-}
-
-func newIPythonMessage(content string) *iPythonMessage {
-	return &iPythonMessage{
-		MessageBase: openai.MessageBase{
-			Role:    "ipython",
-			Content: content,
-		},
-	}
-}
-
 func GenerateText(modelName, prompt string) (string, error) {
 	model, err := models.GetModel[openai.ChatModel](modelName)
 	if err != nil {
@@ -82,7 +69,7 @@ You are a helpful assistant with tool calling capabilities.
 
 	messages = append(messages, openai.NewAssistantMessage(toolCall))
 	// Mock response, imagine this output to be the result of an API call
-	messages = append(messages, openai.NewUserMessage(`{"output": "The weather in that city is currently 76°F with a low of 56°F tonight."}`))
+	messages = append(messages, openai.NewToolMessage(`{"output": "The weather in that city is currently 76°F with a low of 56°F tonight."}`, ""))
 
 	input, err = model.CreateInput(
 		messages...,
